@@ -22,7 +22,7 @@ public class P4 extends Thread implements P {
 		Random rand = new Random();
 
 		try {
-			sleep(rand.nextInt(30) + 30); //Aguarda entre 30 e 60 segundos para iniciar a eleição
+			sleep(rand.nextInt(30) + 30); //Aguarda entre 30 e 60 segundos para iniciar a eleicao
 			stub.startElection(pid);
 		} catch (RemoteException | NotBoundException e) {
 			e.printStackTrace();
@@ -37,7 +37,7 @@ public class P4 extends Thread implements P {
 		stub = (P) UnicastRemoteObject.exportObject(no4, 0);
 		reg = null;
 		try {
-			System.out.println("P4 está no ar!");
+			System.out.println("P4 esta no ar!");
 			reg = LocateRegistry.createRegistry(1099);
 		} catch (Exception e) {
 			try {
@@ -52,8 +52,10 @@ public class P4 extends Thread implements P {
 			sleep(60000); // aguarda um minuto para receber a lista de inscritos no registro RMI
 			String[] registrados = new String[7];
 			registrados = reg.list();
-			for (int i = 1; i < registrados.length; i++) //busca os registrados
-				nos.add(i, registrados[i]);
+			for (int i = 1; i < registrados.length; i++){ //busca os registrados
+				System.out.println(registrados[i]);
+				nos.add( registrados[i]);
+			}
 			no4.run();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
@@ -63,13 +65,13 @@ public class P4 extends Thread implements P {
 	@Override
 	public void startElection(String pid) throws RemoteException, NotBoundException {
 		if (pid.equals(this.pid)) {
-			System.out.println("Nó P1 iniciou a eleição");
+			System.out.println("N P4 iniciou a eleicao");
 
 			Registry reg = LocateRegistry.getRegistry();
 			for (String no : reg.list()) {
-				if (!no.equals(this.pid) && Integer.parseInt(no) > 1) {
+				if (!no.equals(this.pid) && Integer.parseInt(no) > Integer.parseInt(this.pid)) {
 					stub = (P) reg.lookup(no);
-					System.out.println("Enviando eleição para o nó " + no);
+					System.out.println("Enviando eleicao para o n " + no);
 					stub.startElection(pid);
 				} else
 					stub.setLeader(pid);
@@ -81,7 +83,7 @@ public class P4 extends Thread implements P {
 	public void setLeader(String pid) throws RemoteException {
 		coordenador = pid;
 		if (pid.equals(this.pid)) {
-			System.out.println("O nó " + pid + ", é o novo coordenadenador!");
+			System.out.println("O n " + pid + ",  o novo coordenadenador!");
 			Registry reg = LocateRegistry.getRegistry();
 			for (String nodeName : reg.list()) {
 				if (!nodeName.equals(this.pid)) {
@@ -95,9 +97,9 @@ public class P4 extends Thread implements P {
 				}
 			}
 
-			System.out.println("O nó " + pid + ", é o novo coordenadenador!");
+			System.out.println("O n " + pid + ",  o novo coordenadenador!");
 		} else {
-			System.out.println("Nó " + pid + " ganhou a eleição e é o novo coordenador!");
+			System.out.println("N " + pid + " ganhou a eleicao e  o novo coordenador!");
 		}
 	}
 
