@@ -22,8 +22,12 @@ public class P1 extends Thread implements P {
 		Random rand = new Random();
 
 		try {
-			sleep(rand.nextInt(30) + 30); //Aguarda entre 30 e 60 segundos para iniciar a eleicao
+			sleep(rand.nextInt(3000) + 3000); //Aguarda entre 30 e 60 segundos para iniciar a eleicao
 			stub.startElection(pid);
+			while (true) {
+				lookForCoordenador();
+				sleep(rand.nextInt(3000) + 3000);
+			}
 		} catch (RemoteException | NotBoundException e) {
 			e.printStackTrace();
 		} catch (InterruptedException e) {
@@ -50,8 +54,7 @@ public class P1 extends Thread implements P {
 
 		try {
 			sleep(60000); // aguarda um minuto para receber a lista de inscritos no registro RMI
-			String[] registrados = new String[7];
-			registrados = reg.list();
+			String[] registrados = reg.list();
 			for (int i = 0; i< registrados.length; i++) { //busca os registrados
 				System.out.println(registrados[i]);
 				nos.add(registrados[i]);
@@ -64,18 +67,38 @@ public class P1 extends Thread implements P {
 
 	@Override
 	public void startElection(String pid) throws RemoteException, NotBoundException {
+//		if (pid.equals(this.pid)) {
+//		System.out.println(this.pid);
+//			System.out.println("Processo P1 iniciou a eleicao");
+//
+//			Registry reg = LocateRegistry.getRegistry();
+//			for (String no : reg.list()) {
+//				if (!no.equals(this.pid) && Integer.parseInt(no) > Integer.parseInt(this.pid)) {
+//					stub = (P) reg.lookup(no);
+//					System.out.println("Enviando eleito para o n " + no);
+//					stub.startElection(pid);
+//				} else
+//					stub.setLeader(pid);
+//			}
+//		}
+		
 		if (pid.equals(this.pid)) {
-		System.out.println(this.pid);
-			System.out.println("Processo P1 iniciou a eleicao");
-
-			Registry reg = LocateRegistry.getRegistry();
+			System.out.println("Processo P1 ("+this.pid+") iniciou a eleicao");
+			
+			boolean bigger = true;
 			for (String no : reg.list()) {
 				if (!no.equals(this.pid) && Integer.parseInt(no) > Integer.parseInt(this.pid)) {
-					stub = (P) reg.lookup(no);
+					P stub = (P) reg.lookup(no);
 					System.out.println("Enviando eleito para o n " + no);
-					stub.startElection(pid);
-				} else
-					stub.setLeader(pid);
+					try {
+						stub.startElection(pid);
+						bigger = false;
+					} catch(RemoteException ex) {}
+				}
+			}
+			
+			if (bigger) {
+				stub.setLeader(pid);
 			}
 		}
 	}
@@ -83,35 +106,33 @@ public class P1 extends Thread implements P {
 	@Override
 	public void setLeader(String pid) throws RemoteException {
 		coordenador = pid;
-		System.out.println(this.pid);
 		if (pid.equals(this.pid)) {
-			System.out.println("O n " + pid + ",  o novo coordenadenador!");
 			Registry reg = LocateRegistry.getRegistry();
 			for (String nodeName : reg.list()) {
 				if (!nodeName.equals(this.pid)) {
 					try {
-						stub = (P) reg.lookup(nodeName);
+						P stub = (P) reg.lookup(nodeName);
 						stub.setLeader(pid);
-
-					} catch (NotBoundException e) {
-						e.printStackTrace();
-					}
+					} catch (Exception e) { }
 				}
 			}
 
-			System.out.println("O n " + pid + ",  o novo coordenadenador!");
+			System.out.println("Eu, P1(" + pid + "), sou o novo coordenador!");
 		} else {
 			System.out.println("N " + pid + " ganhou a eleicao o novo coordenador!");
 		}
 	}
 
 	public void lookForCoordenador() throws RemoteException, NotBoundException {
-		System.out.println("Coordinator has crushed. Iniating new election");
-		try {
-			stub = (P) reg.lookup(coordenador);
-		} catch (RemoteException | NotBoundException e) {
-			stub.startElection(pid);
-			e.printStackTrace();
+		String coordAtual = coordenador;
+		if (coordAtual != null && !coordAtual.equals(pid)) {
+			try {
+				P coord = (P) reg.lookup(coordAtual);
+				coord.startElection(pid);
+			} catch (Exception e) {
+				System.out.println("Coordenador quebrou. Iniciando nova eleição");
+				stub.startElection(pid);
+			}
 		}
 	}
 }
